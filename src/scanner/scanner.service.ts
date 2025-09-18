@@ -61,10 +61,8 @@ export class ScannerService {
                     const strmFileContent = `${serverAddress}/proxy?p=${encodeURIComponent(join(folder, item.name))}`;
 
                     // create strm file and write content
-                    if (!existsSync(strmFilePath)) {
-                        Logger.debug(`Creating strm file: ${strmFilePath}`);
-                        writeFileSync(strmFilePath, strmFileContent);
-                    }
+                    Logger.debug(`Creating strm file: ${strmFilePath}`);
+                    writeFileSync(strmFilePath, strmFileContent);
                 }
             }
         }
