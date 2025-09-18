@@ -4,5 +4,30 @@
 
 #### features
 1. Works with AList
-2. Specifies an AList folder, converts files to .strm format, and transfers the .strm files to a target folder
+2. Scan alist folder structure, make all files to .strm files, keep folder structure (for easy scraping, by tools such as nas-tool)
 3. Proxies .strm files, sends requests to AList to obtain direct links, and redirects to those direct links
+
+#### configuration
+Refer to the .env.demo file to create the .env file.
+```
+VERSION=0.0.1
+
+ALIST_SERVER_URL=http://192.168.1.200:5244
+ALIST_USER_NAME=admin
+ALIST_PASSWORD=your_password_here
+
+PORT=5255
+
+SCAN_BASE_PATH=/
+STRM_BASE_PATH=D:\strm
+```
+
+#### run
+1. npm install
+2. start:dev
+
+#### docker build
+1. docker pull node:20
+2. docker build -t alistrm:0.0.1 .
+3. docker save -o alistrm-0.0.1.tar alistrm:0.0.1
+4. upload to your docker server
