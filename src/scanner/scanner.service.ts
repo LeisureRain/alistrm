@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AlistService } from '../alist/alist.service';
 import { join } from 'path';
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { isVideoFile } from '../util/util';
 
 @Injectable()
 export class ScannerService {
@@ -40,9 +41,9 @@ export class ScannerService {
                         folder: join(folder, item.name),
                         serverAddress
                     });
-                } else {
+                } else if (isVideoFile(item.name)) {
 
-                    Logger.debug(`Found file: ${item.name}, start to process file...`);
+                    Logger.debug(`Found video file: ${item.name}, start to process file...`);
 
                     const basePath = this.configService.get<string>("STRM_BASE_PATH");
                     if (!basePath) {

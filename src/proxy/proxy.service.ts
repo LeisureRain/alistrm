@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { HttpService } from '@nestjs/axios';
 import { AlistService } from '../alist/alist.service';
 
 @Injectable()
 export class ProxyService {
 
     constructor(
-        private readonly configService: ConfigService,
-        private readonly httpService: HttpService,
         private readonly alistService: AlistService
     ) { }
 
