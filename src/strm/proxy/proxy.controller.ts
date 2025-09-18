@@ -7,7 +7,7 @@ export class ProxyController {
     constructor(private readonly proxyService: ProxyService) { }
 
     @Get()
-    @Redirect()
+    // @Redirect()
     async get(@Query('p') p: string): Promise<{ url: string }> {
         return {
             url: await this.proxyService.get(p)

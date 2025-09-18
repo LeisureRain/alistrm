@@ -1,27 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { AlistService } from '../../alist/alist.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ProxyService {
 
     constructor(
-        private configService: ConfigService,
-        private httpService: HttpService
+        private readonly configService: ConfigService,
+        private readonly httpService: HttpService,
+        private readonly alistService: AlistService
     ) { }
 
     async get(p: string): Promise<string> {
-        console.log('ProxyService get path:', p);
 
-        const api = "/api/fs/list";
+        const data = await this.alistService.request('/api/fs/list', {
+            path: '/天翼云盘'
+        });
 
-        const ALIST_SERVER_URL = this.configService.get<string>('ALIST_SERVER_URL');
-        const ALIST_USER_NAME = this.configService.get<string>('ALIST_USER_NAME');
-        const ALIST_PASSWORD = this.configService.get<string>('ALIST_PASSWORD');
+        console.log('ProxyService get data:', JSON.stringify(data));
 
-        const url = `${ALIST_SERVER_URL}${api}?path=${encodeURIComponent(p)}`;
+        // const res = await this.alistService.request('/api/fs/get', {
+        //     path: '/天翼云盘'
+        // });
 
-        // this.httpService
+        // console.log(JSON.stringify(res));
 
         return "https://www.baidu.com";
 
