@@ -6,8 +6,16 @@
 - [ ] alistrm server url should be configed, because it is used by media servers such as jellyfin
 - [ ] reduce docker image size, use alpine node
 - [ ] web ui
+- [ ] login verification
+- [ ] scan specified folder
 - [ ] cron scan
 - [ ] incremental scan
+
+#### api
+```javascript
+// rescan all alist files
+/scanner/rescan
+```
 
 #### features
 1. Works with AList
