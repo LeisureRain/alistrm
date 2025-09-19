@@ -2,6 +2,13 @@
 
 #### Please note that it is currently in the early development stage.
 
+#### TODO
+- [ ] alistrm server url should be configed, because it is used by media servers such as jellyfin
+- [ ] reduce docker image size, use alpine node
+- [ ] web ui
+- [ ] cron scan
+- [ ] incremental scan
+
 #### features
 1. Works with AList
 2. Scan alist folder structure, make all files to .strm files, keep folder structure (for easy scraping, by tools such as nas-tool)
