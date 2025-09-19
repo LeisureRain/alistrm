@@ -1,10 +1,10 @@
-## This tool scans AList files, converts them to STRM-format files, and serves these files simultaneously.
+# This tool scans AList files, converts them to STRM-format files, and serves these files simultaneously.
 
-#### Please note that it is currently in the early development stage.
+## Please note that it is currently in the early development stage.
 
 - English | [中文](./README_cn.md) 
 
-#### TODO
+## TODO
 - [ ] alistrm server url should be configed, because it is used by media servers such as jellyfin
 - [ ] reduce docker image size, use alpine node
 - [ ] web ui
@@ -13,18 +13,18 @@
 - [ ] cron scan
 - [ ] incremental scan
 
-#### api
+## api
 ```javascript
 // rescan all alist files
 /scanner/rescan
 ```
 
-#### features
+## features
 1. Works with AList
 2. Scan alist folder structure, make all files to .strm files, keep folder structure (for easy scraping, by tools such as nas-tool)
 3. Proxies .strm files, sends requests to AList to obtain direct links, and redirects to those direct links
 
-#### configuration
+## configuration
 Refer to the .env.demo file to create the .env file.
 ```
 VERSION=0.0.1
@@ -39,11 +39,11 @@ SCAN_BASE_PATH=/
 STRM_BASE_PATH=D:\strm
 ```
 
-#### run
+## run
 1. npm install
 2. start:dev
 
-#### docker build
+## docker build
 1. docker pull node:20
 2. docker build -t alistrm:0.0.1 .
 3. docker save -o alistrm-0.0.1.tar alistrm:0.0.1
