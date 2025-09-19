@@ -2,6 +2,8 @@
 
 #### Please note that it is currently in the early development stage.
 
+- English | [中文](./README_cn.md) 
+
 #### TODO
 - [ ] alistrm server url should be configed, because it is used by media servers such as jellyfin
 - [ ] reduce docker image size, use alpine node
