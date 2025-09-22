@@ -13,24 +13,24 @@ export class ScannerService {
         private readonly alistService: AlistService
     ) { }
 
-    rescan({ serverAddress }: { serverAddress: string }) {
+    rescan() {
 
         Logger.debug('start to rescan');
 
-        Logger.debug(`serverAddress: ${serverAddress}`);
 
         this.doScan({
-            folder: this.configService.get<string>("SCAN_BASE_PATH") || '/',
-            serverAddress
+            folder: this.configService.get<string>("SCAN_BASE_PATH") || '/'
         });
     }
 
-    async doScan({ folder, serverAddress }: { folder: string, serverAddress: string }) {
+    async doScan({ folder }: { folder: string }) {
         Logger.debug(`Scanning folder ${folder} ...`);
 
         const data = await this.alistService.request('/api/fs/list', {
             path: folder
         });
+
+        const serverAddress = this.configService.get<string>("STRM_SERVER_URL");
 
         if (data.content && data.content.length > 0) {
             for (const item of data.content) {
@@ -39,7 +39,6 @@ export class ScannerService {
                     // Recursively scan the subfolder
                     await this.doScan({
                         folder: join(folder, item.name),
-                        serverAddress
                     });
                 } else if (isVideoFile(item.name)) {
 
