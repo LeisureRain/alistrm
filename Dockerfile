@@ -64,7 +64,7 @@ ENV ALIST_PASSWORD "your_password_here"
 ENV PORT 5255
 ENV SCAN_BASE_PATH "/"
 ENV STRM_BASE_PATH "/media/strm"
-ENV STRM_SERVER_URL http://127.0.0.1:5255
+ENV ALISTRM_SERVER_URL_TO_EMBY http://127.0.0.1:5255
 
 # 启动服务
 CMD [ "node", "dist/main.js" ]

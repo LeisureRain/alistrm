@@ -30,7 +30,7 @@ export class ScannerService {
             path: folder
         });
 
-        const serverAddress = this.configService.get<string>("STRM_SERVER_URL");
+        const serverAddress = this.configService.get<string>("ALISTRM_SERVER_URL_TO_EMBY");
 
         if (data.content && data.content.length > 0) {
             for (const item of data.content) {
