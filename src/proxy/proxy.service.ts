@@ -8,7 +8,7 @@ export class ProxyService {
         private readonly alistService: AlistService
     ) { }
 
-    async get(p: string): Promise<string> {
+    async handleRedirect(p: string): Promise<string> {
 
         const data = await this.alistService.request('/api/fs/get', {
             path: p

@@ -24,7 +24,7 @@ export class ScannerService {
     }
 
     async doScan({ folder }: { folder: string }) {
-        Logger.debug(`Scanning folder ${folder} ...`);
+        Logger.debug(`Scanning folder ${folder}`);
 
         const data = await this.alistService.request('/api/fs/list', {
             path: folder
@@ -35,14 +35,14 @@ export class ScannerService {
         if (data.content && data.content.length > 0) {
             for (const item of data.content) {
                 if (item.is_dir) {
-                    Logger.debug(`Found subfolder: ${item.name}, start to scan subfolder...`);
+                    Logger.debug(`Found subfolder: ${item.name}`);
                     // Recursively scan the subfolder
                     await this.doScan({
                         folder: join(folder, item.name),
                     });
-                } else if (isVideoFile(item.name)) {
+                } else {
 
-                    Logger.debug(`Found video file: ${item.name}, start to process file...`);
+                    Logger.debug(`Found video file: ${item.name}`);
 
                     const basePath = this.configService.get<string>("STRM_BASE_PATH");
                     if (!basePath) {
