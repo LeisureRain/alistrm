@@ -7,8 +7,8 @@
 
 
 ## 待办事项（TODO）
-- [ ] 需支持配置 alistrm 服务端 URL（该 URL 供 Jellyfin 等媒体服务器使用）
-- [ ] 减小 Docker 镜像体积，采用 Alpine 版本的 Node 环境
+- [x] 需支持配置 alistrm 服务端 URL（该 URL 供 Jellyfin 等媒体服务器使用）
+- [x] 减小 Docker 镜像体积，采用 Alpine 版本的 Node 环境
 - [ ] 开发 Web 界面（Web UI）
 - [ ] 增加登录验证功能
 - [ ] 支持扫描指定文件夹

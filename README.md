@@ -5,8 +5,8 @@
 - English | [中文](./README_cn.md) 
 
 ## TODO
-- [ ] alistrm server url should be configed, because it is used by media servers such as jellyfin
-- [ ] reduce docker image size, use alpine node
+- [x] alistrm server url should be configed, because it is used by media servers such as jellyfin
+- [x] reduce docker image size, use alpine node
 - [ ] web ui
 - [ ] login verification
 - [ ] scan specified folder
