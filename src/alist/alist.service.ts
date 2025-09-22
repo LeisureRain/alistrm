@@ -69,6 +69,7 @@ export class AlistService {
                     if (isRetry) {
                         throw new HttpException('Invalid token, even after retrying.', HttpStatus.OK);
                     }
+                    tokenStore.clear();
                     await this.getToken(); // refresh token
                     return await this.requestInternal(api, params, true); // retry
                 } else if (res.data.code == 200) {

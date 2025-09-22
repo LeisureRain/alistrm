@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
 import { AlistService } from '../alist/alist.service';
 
 @Injectable()
@@ -14,10 +14,15 @@ export class ProxyService {
             path: p
         });
 
-        if (data) {
+        console.log(data);
+
+        if (data && data.id) {
+
+            Logger.debug(`ProxyService get raw_url: ${p} -> ${data.raw_url}`);
+
             return data.raw_url;
         }
 
-        throw new Error("File not found");
+        throw new HttpException("File not found", HttpStatus.NOT_FOUND);
     }
 }

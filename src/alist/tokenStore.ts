@@ -7,3 +7,7 @@ export function get(): string {
 export function set(token: string): void {
     ALIST_TOKEN = token;
 }
+
+export function clear() {
+    ALIST_TOKEN = "";
+}
