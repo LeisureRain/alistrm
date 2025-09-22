@@ -14,8 +14,6 @@ export class ProxyService {
             path: p
         });
 
-        console.log(data);
-
         if (data && data.id) {
 
             Logger.debug(`ProxyService get raw_url: ${p} -> ${data.raw_url}`);
