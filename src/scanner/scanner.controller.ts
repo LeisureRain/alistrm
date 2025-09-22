@@ -8,7 +8,7 @@ export class ScannerController {
     constructor(private readonly scannerService: ScannerService) { }
 
     @Get('rescan')
-    rescan(@Request() req: ExpressRequest) {
+    rescan(@Request() req: ExpressRequest) : string{
 
         const protocol = req.protocol;
 
@@ -16,8 +16,10 @@ export class ScannerController {
 
         const serverAddress = `${protocol}://${host}`;
 
-        return this.scannerService.rescan({
+        this.scannerService.rescan({
             serverAddress
         });
+
+        return 'ok';
     }
 }

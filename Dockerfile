@@ -1,45 +1,70 @@
-# 构建阶段
-FROM node:20 AS builder
+###################
+# BUILD FOR LOCAL DEVELOPMENT
+###################
 
+FROM node:18-alpine As development
+
+# 创建应用目录
 WORKDIR /app
 
-# 复制依赖文件
-COPY package*.json ./
+# 复制依赖清单到容器镜像里.
+# 这个星号通配符意思是复制package.json和package-lock.json,复制到当前应用目录.
+# 首先复制这个选项可以防止在每次代码更改时重新运行npm install.
+COPY --chown=node:node package*.json ./
 
-# 安装依赖
+# 使用npm ci来安装依赖而不是npm install
 RUN npm ci
 
-# 复制源代码
-COPY . .
+# 复制安装后的依赖包到当前目录下
+COPY --chown=node:node . .
 
-# 构建项目
-RUN npm run build
+# 使用指定的用户而不是root权限用户
+USER node
 
-# 运行阶段
-FROM node:20
+###################
+# BUILD FOR PRODUCTION
+###################
+
+FROM node:18-alpine As build
 
 WORKDIR /app
 
+COPY --chown=node:node package*.json ./
+
+# 我们需要通过Nest CLI 来执行npm run build,这是个开发依赖，然后把安装后依赖全部复制到指定目录
+COPY --chown=node:node --from=development /app/node_modules ./node_modules
+
+COPY --chown=node:node . .
+
+# 执行打包命令
+RUN npm run build
+
+# 设置生产环境变量
+ENV NODE_ENV production
+
+# 运行' npm ci '会删除现有的node_modules目录，并传入——only=production确保只安装了生产依赖项。这确保node_modules目录尽可能优化
+RUN npm ci --only=production && npm cache clean --force
+
+USER node
+
+###################
+# PRODUCTION
+###################
+
+FROM node:18-alpine As production
+
+# 将生产依赖和打包后的文件复制到指定目录下
+COPY --chown=node:node --from=build /app/node_modules ./node_modules
+COPY --chown=node:node --from=build /app/dist ./dist
+
 # 声明环境变量（设置默认值）
-ENV ALIST_SERVER_URL="http://127.0.0.1:5244"
-ENV ALIST_USER_NAME="admin"
-ENV ALIST_PASSWORD="your_password_here"
-ENV PORT=5255
-ENV SCAN_BASE_PATH="/"
-ENV STRM_BASE_PATH="/media/strm"
+ENV ALIST_SERVER_URL "http://127.0.0.1:5244"
+ENV ALIST_USER_NAME "admin"
+ENV ALIST_PASSWORD "your_password_here"
+ENV PORT 5255
+ENV SCAN_BASE_PATH "/"
+ENV STRM_BASE_PATH "/media/strm"
+ENV STRM_SERVER_URL http://127.0.0.1:5255
 
-# 复制依赖文件
-COPY package*.json ./
-COPY config.json ./
-
-# 安装生产依赖
-RUN npm ci --only=production
-
-# 复制构建产物
-COPY --from=builder /app/dist ./dist
-
-# 暴露端口（与PORT环境变量保持一致）
-EXPOSE ${PORT}
-
-# 启动命令
-CMD ["node", "dist/main"]
+# 启动服务
+CMD [ "node", "dist/main.js" ]
