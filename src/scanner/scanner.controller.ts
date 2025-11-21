@@ -14,4 +14,19 @@ export class ScannerController {
 
         return 'ok';
     }
+
+    @Get('status')
+    status() {
+        return this.scannerService.getStatus();
+    }
+    
+    @Get('history')
+    history() {
+        return this.scannerService.getHistory();
+    }
+
+    @Get('history/latest')
+    latest() {
+        return this.scannerService.getLatestHistory();
+    }
 }

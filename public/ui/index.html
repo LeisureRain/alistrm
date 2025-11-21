@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>STRM Server - Vue UI</title>
+    <style>
+      body {
+        font-family: system-ui, 'Segoe UI', Roboto, 'Microsoft Yahei', sans-serif;
+        margin: 2rem;
+        background: #fafafa;
+        color: #222;
+      }
+      header {
+        font-size: 1.4rem;
+        margin-bottom: 1rem;
+      }
+      .card {
+        background: #fff;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(22,27,35,0.06);
+        margin-bottom: 1.25rem;
+      }
+      pre {
+        background: #f5f5f5;
+        padding: 1rem;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      button { margin-right: 8px }
+
+      .card-head{display:flex;align-items:center;justify-content:space-between}
+      .actions{display:flex;gap:8px}
+      .muted{color:#666;margin-top:0.25rem;margin-bottom:0.75rem}
+
+      .btn{border:1px solid #dcdcdc;background:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+      .btn.primary{background:#0b76ef;color:#fff;border-color:transparent}
+      .btn:hover{box-shadow:0 2px 6px rgba(11,118,239,0.08)}
+
+  /* fixed height for directory browser to keep layout stable */
+  .tree-wrap{height:480px;overflow:auto;padding-right:8px}
+      .tree-root{list-style:none;padding-left:0;margin:0}
+
+  .node-row{padding:4px 0}
+  .node-head{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;padding:4px}
+  .node-head .name{font-size:0.98rem}
+  .node-head .dir{color:#0b76ef}
+  .node-head .file{color:#333}
+  .node-head:hover{background:rgba(11,118,239,0.06)}
+  .node-head:hover .dir{color:#084e9a}
+  .node-head:hover .file{color:#084e9a}
+  .node-children{margin-left:18px;margin-top:6px}
+  .empty{color:#888;font-size:0.9rem}
+  .child-list{list-style:none;padding-left:0;margin:0}
+
+  .session-card{background:#f9fbff;border:1px solid #e6f0ff;padding:12px;border-radius:8px;margin-top:8px}
+  .session-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .session-metadata{font-size:0.95rem;color:#333}
+  .session-actions{display:flex;gap:8px}
+  .file-list{max-height:220px;overflow:auto;margin-top:10px;padding-left:0}
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px dashed rgba(0,0,0,0.04)}
+  .file-item .path{font-size:0.9rem;color:#222;word-break:break-all}
+  .small-btn{font-size:0.85rem;padding:4px 8px;border-radius:6px;border:1px solid #dcdcdc;background:#fff;cursor:pointer}
+  .small-btn:hover{background:#f0f6ff}
+
+      /* scrollbar styling */
+      .tree-wrap::-webkit-scrollbar{width:10px}
+      .tree-wrap::-webkit-scrollbar-track{background:transparent}
+      .tree-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.12);border-radius:8px}
+      .tree-wrap{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,0.12) transparent}
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>STRM Server - Vue UI</header>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Alist 目录浏览</h3>
+          <div class="actions">
+            <button class="btn" @click="loadRoot" title="刷新目录">刷新</button>
+          </div>
+        </div>
+        <p class="muted">加载 alist 目录结构</p>
+
+        <div class="tree-wrap">
+          <template v-if="error"> <div class="error">{{ error }}</div> </template>
+          <template v-else>
+            <ul class="tree-root">
+              <li v-for="item in nodes[rootPath] || []" :key="rootPath + '/' + item.name">
+                <node-item :item="item" :parent-path="rootPath" :nodes="nodes" @load-children="load"></node-item>
+              </li>
+            </ul>
+          </template>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>扫描器</h3>
+        <p class="muted">扫描全部，并生成 strm 文件</p>
+        <div>
+          <button class="btn primary" @click="rescan" :disabled="scanning || scanStatus.running">Rescan</button>
+        </div>
+        <div style="margin-top:8px">
+          <div v-if="scanStatus.running">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-size:0.95rem;color:#444">
+                {{ scanStatus.totalVisited }} visited • {{ scanStatus.filesFound }} files • {{ scanStatus.strmCreated }} .strm created
+              </div>
+              <div style="margin-left:auto;color:#666;font-size:0.9rem">{{ formatElapsed(scanStatus.elapsedMs) }}</div>
+            </div>
+            <div style="margin-top:6px;color:#666;font-size:0.9rem">当前: {{ scanStatus.currentPath }}</div>
+          </div>
+          <div v-else>
+            <div style="font-size:0.9rem;color:#666">
+              最近结果：{{ scannerResult || '无' }}
+              <div style="margin-top:6px">
+                最近完成： <strong v-if="scanStatus.finishedAt">{{ new Date(scanStatus.finishedAt).toLocaleString() }}</strong><span v-else>无</span>
+              </div>
+              <div style="margin-top:6px">统计：{{ scanStatus.totalVisited }} visited • {{ scanStatus.filesFound }} files • {{ scanStatus.strmCreated || 0 }} .strm</div>
+            </div>
+            <div style="margin-top:8px">
+              <button class="btn" @click="viewLatest">查看上次扫描详情</button>
+              <button class="btn" @click="downloadHistory">下载历史</button>
+            </div>
+
+            <div v-if="latestSession" class="session-card">
+              <div class="session-head">
+                <div class="session-metadata">
+                  <div><strong>会话：</strong>{{ latestSession.id }}</div>
+                  <div style="margin-top:4px;color:#666">开始：<strong>{{ latestSession.startedAt ? new Date(latestSession.startedAt).toLocaleString() : '-' }}</strong>
+                  &nbsp; 完成：<strong>{{ latestSession.finishedAt ? new Date(latestSession.finishedAt).toLocaleString() : '-' }}</strong></div>
+                  <div style="margin-top:6px;color:#666">统计：<strong>{{ latestSession.totalVisited }} visited</strong> • <strong>{{ latestSession.filesFound }} files</strong> • <strong>{{ latestSession.strmCreated || 0 }} .strm</strong></div>
+                </div>
+                <div class="session-actions">
+                  <button class="small-btn" @click="copySessionJson">复制 JSON</button>
+                  <button class="small-btn" @click="closeLatest">关闭</button>
+                </div>
+              </div>
+
+              <div v-if="latestSession.createdFiles && latestSession.createdFiles.length" class="file-list">
+                <div v-for="(f, idx) in latestSession.createdFiles" :key="idx" class="file-item">
+                  <div class="path">{{ f }}</div>
+                  <div style="margin-left:8px">
+                    <button class="small-btn" @click="copyPath(f)">复制路径</button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="latestSession.error" style="margin-top:8px;color:#b00">错误：{{ latestSession.error }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Vue 3 via CDN (full build with compiler) for in-browser templates -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+      const { createApp, ref, reactive } = Vue;
+
+      // recursive component template
+      const NodeItem = {
+        name: 'node-item',
+        props: ['item', 'parentPath', 'nodes'],
+        setup(props, { emit }) {
+          const expanded = ref(false);
+
+          function fullPath() {
+            if (props.parentPath === '/' || props.parentPath === '') return `/${props.item.name}`.replace('//','/');
+            return `${props.parentPath}/${props.item.name}`.replace('//','/');
+          }
+
+          function toggle() {
+            if (props.item.is_dir) {
+              const p = fullPath();
+              if (!props.nodes[p]) {
+                // Ask parent to load
+                emit('load-children', p);
+              }
+              expanded.value = !expanded.value;
+            }
+          }
+
+          return { expanded, fullPath, toggle };
+        },
+        template: `
+          <div class="node-row">
+            <div class="node-head" @click="toggle">
+              <span v-if="item.is_dir" class="dir">
+                <strong v-text="expanded ? '▾ ' : '▸ '"></strong>
+                <span class="name" v-text="item.name || '/'"></span>
+              </span>
+              <span v-else class="file">📄 <span class="name" v-text="item.name"></span></span>
+            </div>
+
+            <div v-if="expanded" class="node-children">
+              <template v-if="nodes[fullPath()] && nodes[fullPath()].length===0">
+                <div class="empty">(空)</div>
+              </template>
+              <ul class="child-list">
+                <li v-for="child in nodes[fullPath()] || []" :key="fullPath() + '/' + child.name">
+                  <node-item :item="child" :parent-path="fullPath()" :nodes="nodes" @load-children="$emit('load-children', $event)"></node-item>
+                </li>
+              </ul>
+            </div>
+          </div>
+        `
+      };
+
+      createApp({
+        components: { 'node-item': NodeItem },
+        setup() {
+          const rootPath = ref('/');
+          const nodes = reactive({});
+          const error = ref('');
+          const scannerResult = ref('');
+          const scanning = ref(false);
+          const scanStatus = reactive({
+            running: false,
+            totalVisited: 0,
+            filesFound: 0,
+            currentPath: '',
+            elapsedMs: 0,
+            error: ''
+          });
+
+          let statusTimer = null;
+          const latestSession = ref(null);
+          
+          function closeLatest() {
+            latestSession.value = null;
+          }
+
+          async function copySessionJson() {
+            try {
+              const text = JSON.stringify(latestSession.value, null, 2);
+              await navigator.clipboard.writeText(text);
+              alert('已复制会话 JSON 到剪贴板');
+            } catch (e) {
+              alert('复制失败: ' + e);
+            }
+          }
+
+          async function copyPath(p) {
+            try {
+              await navigator.clipboard.writeText(p);
+              // small visual feedback
+              // (could be improved to toast)
+            } catch (e) {
+              alert('复制失败: ' + e);
+            }
+          }
+
+          async function fetchStatus() {
+            try {
+              const res = await fetch('/scanner/status');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              scanStatus.running = data.running;
+              scanStatus.totalVisited = data.totalVisited;
+              scanStatus.filesFound = data.filesFound;
+              scanStatus.strmCreated = data.strmCreated || 0;
+              scanStatus.currentPath = data.currentPath;
+              scanStatus.elapsedMs = data.elapsedMs || 0;
+              scanStatus.error = data.error || '';
+              // if scanning finished, stop polling
+              if (!data.running) {
+                stopStatusPoll();
+              }
+              return data;
+            } catch (e) {
+              // ignore transient errors
+              return null;
+            }
+          }
+
+          async function startStatusPoll() {
+            if (statusTimer) return;
+            // fetch once to see if a scan is running; only start interval if running
+            const data = await fetchStatus();
+            if (data && data.running) {
+              statusTimer = setInterval(fetchStatus, 1000);
+            }
+          }
+
+          function stopStatusPoll() {
+            if (statusTimer) {
+              clearInterval(statusTimer);
+              statusTimer = null;
+            }
+          }
+
+          async function load(p) {
+            error.value = '';
+            try {
+              const res = await fetch(`/api/fs/list?path=${encodeURIComponent(p)}`);
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              // alist returns data.content as array
+              nodes[p] = data.content || [];
+            } catch (e) {
+              error.value = '加载失败: ' + e;
+              nodes[p] = [];
+            }
+          }
+
+          async function loadRoot() {
+            nodes[rootPath.value] = [];
+            await load(rootPath.value);
+          }
+
+          async function rescan() {
+            scannerResult.value = '触发中...';
+            scanning.value = true;
+            try {
+              const res = await fetch('/scanner/rescan');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const text = await res.text();
+              scannerResult.value = text;
+              // start polling status
+              startStatusPoll();
+            } catch (e) {
+              scannerResult.value = '请求失败: ' + e;
+            } finally {
+              scanning.value = false;
+            }
+          }
+
+          async function viewLatest() {
+            try {
+              const res = await fetch('/scanner/history/latest');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              latestSession.value = data;
+            } catch (e) {
+              latestSession.value = { error: String(e) };
+            }
+          }
+
+          async function downloadHistory() {
+            try {
+              const res = await fetch('/scanner/history');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `scan-history-${Date.now()}.json`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+            } catch (e) {
+              alert('下载失败: ' + e);
+            }
+          }
+
+          function formatElapsed(ms) {
+            if (!ms || ms <= 0) return '0s';
+            const s = Math.floor(ms / 1000);
+            if (s < 60) return `${s}s`;
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${m}m ${sec}s`;
+          }
+
+          // load default root on mount
+          loadRoot();
+          // start polling status so UI reflects any running scan
+          startStatusPoll();
+
+          return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath };
+        }
+      }).mount('#app');
+    </script>
+  </body>
+</html>

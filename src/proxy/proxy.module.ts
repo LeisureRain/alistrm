@@ -8,6 +8,7 @@ import { AlistModule } from '../alist/alist.module';
 @Module({
   imports: [ConfigModule, HttpModule, AlistModule],
   controllers: [ProxyController],
-  providers: [ProxyService]
+  providers: [ProxyService],
+  exports: [ProxyService]
 })
 export class ProxyModule { }
