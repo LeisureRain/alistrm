@@ -75,5 +75,16 @@ ENV ADMIN_PASS admin
 # ensure log directory exists and owned by node user
 RUN mkdir -p /app/logs && chown -R node:node /app/logs
 
+# create persistent data/config directories and expose them as volumes so users
+# can mount host directories to persist scan data, auth/config, etc.
+ENV DATA_DIR /app/data
+ENV CONFIG_DIR /app/config
+
+# ensure data and config dirs exist and are owned by the node user
+RUN mkdir -p ${DATA_DIR} ${CONFIG_DIR} && chown -R node:node ${DATA_DIR} ${CONFIG_DIR}
+
+# declare mount points for persistent data
+VOLUME ["/app/data", "/app/config"]
+
 # 启动服务
 CMD [ "node", "dist/main.js" ]

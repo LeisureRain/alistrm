@@ -54,163 +54,161 @@
   .node-children{margin-left:18px;margin-top:6px}
   .empty{color:#888;font-size:0.9rem}
   .child-list{list-style:none;padding-left:0;margin:0}
+      :root{
+        --bg:#fafafa; --card:#fff; --accent:#0b76ef; --muted:#666; --radius:10px; --shadow:0 6px 18px rgba(22,27,35,0.06)
+      }
+      html,body{height:100%;margin:0}
+      body{
+        font-family: system-ui, 'Segoe UI', Roboto, 'Microsoft Yahei', sans-serif;
+        background:var(--bg);color:#222;
+      }
+      header.app-header{height:64px;display:flex;align-items:center;padding:0 20px;background:linear-gradient(90deg,#fff,#fbfdff);box-shadow:0 1px 0 rgba(0,0,0,0.04)}
+      header.app-header h1{font-size:1.1rem;margin:0}
 
-  .session-card{background:#f9fbff;border:1px solid #e6f0ff;padding:12px;border-radius:8px;margin-top:8px}
-  .session-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .session-metadata{font-size:0.95rem;color:#333}
-  .session-actions{display:flex;gap:8px}
-  .file-list{max-height:220px;overflow:auto;margin-top:10px;padding-left:0}
-  .file-item{display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px dashed rgba(0,0,0,0.04)}
-  .file-item .path{font-size:0.9rem;color:#222;word-break:break-all}
-  .small-btn{font-size:0.85rem;padding:4px 8px;border-radius:6px;border:1px solid #dcdcdc;background:#fff;cursor:pointer}
-  .small-btn:hover{background:#f0f6ff}
+      .app-shell{display:flex;height:calc(100vh - 64px)}
+      .sidebar{width:220px;background:#fff;border-right:1px solid #eee;padding:18px;box-sizing:border-box}
+      .sidebar .logo{font-weight:600;margin-bottom:12px}
+      .nav{display:flex;flex-direction:column;gap:8px}
+      .nav button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid transparent;background:transparent;text-align:left;cursor:pointer}
+      .nav button.active{background:linear-gradient(90deg, rgba(11,118,239,0.06), transparent);border-color:#e6f3ff}
+      .nav .small{font-size:0.85rem;color:var(--muted)}
 
-      /* scrollbar styling */
-      .tree-wrap::-webkit-scrollbar{width:10px}
-      .tree-wrap::-webkit-scrollbar-track{background:transparent}
-      .tree-wrap::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.12);border-radius:8px}
-      .tree-wrap{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,0.12) transparent}
+      .main{flex:1;padding:18px;overflow:auto}
+      .card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px}
+      .card-head{display:flex;align-items:center;justify-content:space-between}
+      .muted{color:var(--muted);margin-top:6px}
+
+      /* tree/browser styles */
+      .tree-wrap{height:520px;overflow:auto;padding-right:8px}
+      .tree-root{list-style:none;padding-left:0;margin:0}
+      .node-row{padding:4px 0}
+      .node-head{display:flex;align-items:center;gap:8px;cursor:pointer;border-radius:6px;padding:4px}
+      .node-head .name{font-size:0.98rem}
+      .node-head .dir{color:var(--accent)}
+      .node-head .file{color:#333}
+      .node-head:hover{background:rgba(11,118,239,0.04)}
+      .node-children{margin-left:18px;margin-top:6px}
+      .empty{color:#888;font-size:0.9rem}
+
+      /* session and file list */
+      .session-card{background:#f9fbff;border:1px solid #e6f0ff;padding:12px;border-radius:8px;margin-top:8px}
+      .file-list{max-height:220px;overflow:auto;margin-top:10px;padding-left:0}
+      .file-item{display:flex;align-items:center;justify-content:space-between;padding:6px;border-bottom:1px dashed rgba(0,0,0,0.04)}
+
+      pre{background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre-wrap}
+      .btn{border:1px solid #dcdcdc;background:#fff;padding:6px 10px;border-radius:6px;cursor:pointer}
+      .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+      .small-btn{font-size:0.85rem;padding:4px 8px;border-radius:6px;border:1px solid #dcdcdc;background:#fff;cursor:pointer}
     </style>
-  </head>
-  <body>
     <div id="app">
-      <header>STRM Server - Vue UI</header>
-
-      <div class="card" id="auth-card">
-        <div class="card-head">
-          <h3>用户</h3>
-          <div class="actions">
-            <button class="btn" v-if="!auth.authenticated" @click="showLogin = true">登录</button>
-            <button class="btn" v-else @click="logout">登出</button>
+      <header class="app-header"><h1>STRM Server</h1></header>
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="logo">STRM 控制台</div>
+          <div class="nav">
+            <button :class="{active: activeView==='dashboard'}" @click="activeView='dashboard'">概览</button>
+            <button :class="{active: activeView==='browser'}" @click="activeView='browser'">目录浏览</button>
+            <button :class="{active: activeView==='scanner'}" @click="activeView='scanner'">扫描器</button>
+            <button :class="{active: activeView==='logs'}" @click="activeView='logs'">服务日志</button>
+            <button :class="{active: activeView==='settings'}" @click="activeView='settings'">设置</button>
           </div>
-        </div>
-        <p class="muted">管理访问控制</p>
-        <div>
-          <div v-if="!auth.authenticated">
-            <div v-if="showLogin">
-              <div style="display:flex;gap:8px;align-items:center">
-                <input placeholder="用户名" v-model="authForm.username" />
-                <input placeholder="密码" v-model="authForm.password" type="password" />
-                <button class="btn primary" @click="login">登录</button>
-                <button class="btn" @click="showLogin=false">取消</button>
+          <div style="margin-top:18px;">
+            <div class="small">当前用户: <strong>{{ auth.username || '-' }}</strong></div>
+            <div style="margin-top:8px"><button class="btn" @click="logout">登出</button></div>
+          </div>
+        </aside>
+
+        <main class="main">
+          <section v-if="activeView==='dashboard'" class="card">
+            <div class="card-head"><h3>概览</h3></div>
+            <div class="muted">最近扫描与系统状态</div>
+            <div style="display:flex;gap:12px;margin-top:12px">
+              <div class="card" style="flex:1">
+                <div>扫描状态</div>
+                <div style="margin-top:6px">运行中: <strong>{{ scanStatus.running ? '是' : '否' }}</strong></div>
+                <div style="margin-top:6px">已访问: <strong>{{ scanStatus.totalVisited }}</strong></div>
+                <div style="margin-top:6px">文件: <strong>{{ scanStatus.filesFound }}</strong></div>
               </div>
-              <div v-if="authError" style="color:#b00;margin-top:8px">{{ authError }}</div>
-            </div>
-            <div v-else class="muted">请登录以访问受保护的 API</div>
-          </div>
-          <div v-else>
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div>已登录为 <strong>{{ auth.username }}</strong></div>
-              <div><button class="btn" @click="showSettings = !showSettings">设置</button></div>
-            </div>
-            <div v-if="showSettings" style="margin-top:8px">
-              <div style="display:flex;gap:8px;align-items:center">
-                <input placeholder="当前密码" v-model="pwdForm.oldPassword" type="password" />
-                <input placeholder="新密码" v-model="pwdForm.newPassword" type="password" />
-                <button class="btn primary" @click="changePassword">修改密码</button>
+              <div class="card" style="flex:1">
+                <div>日志</div>
+                <div style="margin-top:8px"><button class="btn" @click="fetchLogs">查看最近日志</button></div>
               </div>
-              <div v-if="pwdMsg" style="margin-top:8px;color:#666">{{ pwdMsg }}</div>
             </div>
-          </div>
-        </div>
-      </div>
+          </section>
 
-      <div class="card">
-        <div class="card-head">
-          <h3>Alist 目录浏览</h3>
-          <div class="actions">
-            <button class="btn" @click="loadRoot" title="刷新目录">刷新</button>
-          </div>
-        </div>
-        <p class="muted">加载 alist 目录结构</p>
-
-        <div class="tree-wrap">
-          <template v-if="error"> <div class="error">{{ error }}</div> </template>
-          <template v-else>
-            <ul class="tree-root">
-              <li v-for="item in nodes[rootPath] || []" :key="rootPath + '/' + item.name">
-                <node-item :item="item" :parent-path="rootPath" :nodes="nodes" @load-children="load"></node-item>
-              </li>
-            </ul>
-          </template>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>扫描器</h3>
-        <p class="muted">扫描全部，并生成 strm 文件</p>
-        <div>
-          <button class="btn primary" @click="rescan" :disabled="scanning || scanStatus.running">重新扫描</button>
-        </div>
-        <div style="margin-top:8px">
-          <div v-if="scanStatus.running">
-            <div style="display:flex;align-items:center;gap:12px">
-              <div style="font-size:0.95rem;color:#444">
-                {{ scanStatus.totalVisited }} visited • {{ scanStatus.filesFound }} files • {{ scanStatus.strmCreated }} .strm created
-              </div>
-              <div style="margin-left:auto;color:#666;font-size:0.9rem">{{ formatElapsed(scanStatus.elapsedMs) }}</div>
+          <section v-if="activeView==='browser'" class="card">
+            <div class="card-head"><h3>Alist 目录浏览</h3><div><button class="btn" @click="loadRoot">刷新</button></div></div>
+            <p class="muted">加载 alist 目录结构</p>
+            <div class="tree-wrap">
+              <template v-if="error"> <div class="error">{{ error }}</div> </template>
+              <template v-else>
+                <ul class="tree-root">
+                  <li v-for="item in nodes[rootPath] || []" :key="rootPath + '/' + item.name">
+                    <node-item :item="item" :parent-path="rootPath" :nodes="nodes" @load-children="load"></node-item>
+                  </li>
+                </ul>
+              </template>
             </div>
-            <div style="margin-top:6px;color:#666;font-size:0.9rem">当前: {{ scanStatus.currentPath }}</div>
-          </div>
-          <div v-else>
-            <div style="font-size:0.9rem;color:#666">
-              最近结果：{{ scannerResult || '无' }}
-              <div style="margin-top:6px">
-                最近完成： <strong v-if="scanStatus.finishedAt">{{ new Date(scanStatus.finishedAt).toLocaleString() }}</strong><span v-else>无</span>
-              </div>
-              <div style="margin-top:6px">统计：{{ scanStatus.totalVisited }} visited • {{ scanStatus.filesFound }} files • {{ scanStatus.strmCreated || 0 }} .strm</div>
-            </div>
-            <div style="margin-top:8px">
-              <button class="btn" @click="viewLatest">查看上次扫描详情</button>
-              <button class="btn" @click="downloadHistory">下载历史</button>
-            </div>
+          </section>
 
-            <div v-if="latestSession" class="session-card">
-              <div class="session-head">
-                <div class="session-metadata">
-                  <div><strong>会话：</strong>{{ latestSession.id }}</div>
-                  <div style="margin-top:4px;color:#666">开始：<strong>{{ latestSession.startedAt ? new Date(latestSession.startedAt).toLocaleString() : '-' }}</strong>
-                  &nbsp; 完成：<strong>{{ latestSession.finishedAt ? new Date(latestSession.finishedAt).toLocaleString() : '-' }}</strong></div>
-                  <div style="margin-top:6px;color:#666">统计：<strong>{{ latestSession.totalVisited }} visited</strong> • <strong>{{ latestSession.filesFound }} files</strong> • <strong>{{ latestSession.strmCreated || 0 }} .strm</strong></div>
-                </div>
-                <div class="session-actions">
-                  <button class="small-btn" @click="copySessionJson">复制 JSON</button>
-                  <button class="small-btn" @click="closeLatest">关闭</button>
+          <section v-if="activeView==='scanner'" class="card">
+            <div class="card-head"><h3>扫描器</h3><div><button class="btn primary" @click="rescan" :disabled="scanning || scanStatus.running">重新扫描</button></div></div>
+            <p class="muted">扫描全部，并生成 .strm 文件</p>
+            <div style="margin-top:12px">
+              <div v-if="scanStatus.running">当前正在扫描: {{ scanStatus.currentPath }} （已访问 {{ scanStatus.totalVisited }}）</div>
+              <div v-else>
+                <div>最近结果：{{ scannerResult || '无' }}</div>
+                <div style="margin-top:8px">
+                  <button class="btn" @click="viewLatest">查看上次扫描详情</button>
+                  <button class="btn" @click="downloadHistory">下载历史</button>
                 </div>
               </div>
 
-              <div v-if="latestSession.createdFiles && latestSession.createdFiles.length" class="file-list">
-                <div v-for="(f, idx) in latestSession.createdFiles" :key="idx" class="file-item">
-                  <div class="path">{{ f }}</div>
-                  <div style="margin-left:8px">
-                    <button class="small-btn" @click="copyPath(f)">复制路径</button>
+              <div v-if="latestSession" class="session-card" style="margin-top:12px">
+                <div><strong>会话：</strong>{{ latestSession.id }} • 开始: {{ latestSession.startedAt ? new Date(latestSession.startedAt).toLocaleString() : '-' }}</div>
+                <div style="margin-top:8px">统计: {{ latestSession.totalVisited }} visited • {{ latestSession.filesFound }} files • {{ latestSession.strmCreated || 0 }} .strm</div>
+                <div v-if="latestSession.createdFiles && latestSession.createdFiles.length" class="file-list">
+                  <div v-for="(f, idx) in latestSession.createdFiles" :key="idx" class="file-item">
+                    <div class="path">{{ f }}</div>
+                    <div><button class="small-btn" @click="copyPath(f)">复制路径</button></div>
                   </div>
                 </div>
               </div>
-
-              <div v-if="latestSession.error" style="margin-top:8px;color:#b00">错误：{{ latestSession.error }}</div>
             </div>
-          </div>
-        </div>
-      </div>
+          </section>
 
-      <div class="card">
-        <div class="card-head">
-          <h3>服务日志</h3>
-          <div class="actions">
-            <button class="btn" @click="fetchLogs">查看日志</button>
-            <button class="btn" @click="downloadLogs">下载日志</button>
-          </div>
-        </div>
-        <p class="muted">显示最近日志（默认 200 行）</p>
-        <div>
-          <pre v-if="logsContent" style="max-height:280px;overflow:auto;white-space:pre-wrap">{{ logsContent }}</pre>
-          <div v-else class="empty">尚未加载日志</div>
-        </div>
+          <section v-if="activeView==='logs'" class="card">
+            <div class="card-head"><h3>服务日志</h3><div><button class="btn" @click="fetchLogs">刷新</button><button class="btn" @click="downloadLogs">下载</button></div></div>
+            <p class="muted">显示最近日志（默认 200 行）</p>
+            <div style="margin-top:12px"><pre v-if="logsContent" style="max-height:480px;overflow:auto;white-space:pre-wrap">{{ logsContent }}</pre><div v-else class="empty">尚未加载日志</div></div>
+          </section>
+
+          <section v-if="activeView==='settings'" class="card">
+            <h3>设置 / 用户</h3>
+            <p class="muted">管理访问控制</p>
+            <div>
+              <div v-if="!auth.authenticated">
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input placeholder="用户名" v-model="authForm.username" />
+                  <input placeholder="密码" v-model="authForm.password" type="password" />
+                  <button class="btn primary" @click="login">登录</button>
+                </div>
+                <div v-if="authError" style="color:#b00;margin-top:8px">{{ authError }}</div>
+              </div>
+              <div v-else>
+                <div>已登录为 <strong>{{ auth.username }}</strong></div>
+                <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                  <input placeholder="当前密码" v-model="pwdForm.oldPassword" type="password" />
+                  <input placeholder="新密码" v-model="pwdForm.newPassword" type="password" />
+                  <button class="btn primary" @click="changePassword">修改密码</button>
+                </div>
+                <div v-if="pwdMsg" style="margin-top:8px;color:#666">{{ pwdMsg }}</div>
+              </div>
+            </div>
+          </section>
+        </main>
       </div>
     </div>
-
-  <!-- Vue 3 via CDN (full build with compiler) for in-browser templates -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script>
       const { createApp, ref, reactive } = Vue;
@@ -270,6 +268,7 @@
           const rootPath = ref('/');
           const nodes = reactive({});
           const error = ref('');
+          const activeView = ref('dashboard');
           const auth = reactive({ authenticated: false, username: '' });
           const authForm = reactive({ username: '', password: '' });
           const authError = ref('');
@@ -543,7 +542,7 @@
 
           // expose logs content and auth helpers
           return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath, logsContent, fetchLogs, downloadLogs,
-            auth, authForm, authError, showLogin, showSettings, pwdForm, pwdMsg, login, logout, changePassword, checkAuth };
+            auth, authForm, authError, showLogin, showSettings, pwdForm, pwdMsg, login, logout, changePassword, checkAuth, activeView };
         }
       }).mount('#app');
     </script>
