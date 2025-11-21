@@ -1,7 +1,9 @@
-import { Controller, Get, Query, Redirect, Res } from '@nestjs/common';
+import { Controller, Get, Query, Redirect, Res, UseGuards } from '@nestjs/common';
 import { ProxyService } from './proxy.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('proxy')
+@UseGuards(AuthGuard)
 export class ProxyController {
 
     constructor(private readonly proxyService: ProxyService) { }

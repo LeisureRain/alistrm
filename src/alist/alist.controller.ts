@@ -1,7 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { AlistService } from './alist.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('api/fs')
+@UseGuards(AuthGuard)
 export class AlistController {
 
   constructor(private readonly alistService: AlistService) {}

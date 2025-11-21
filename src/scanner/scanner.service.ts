@@ -20,6 +20,8 @@ export class ScannerService {
         totalVisited: 0,
         filesFound: 0,
         strmCreated: 0,
+        // number of files skipped because existing .strm contains an unexpired direct URL
+        skippedUnexpired: 0,
         currentPath: '',
         startedAt: 0,
         finishedAt: 0,
@@ -76,6 +78,7 @@ export class ScannerService {
             totalVisited: this.status.totalVisited,
             filesFound: this.status.filesFound,
             strmCreated: this.status.strmCreated,
+            skippedUnexpired: this.status.skippedUnexpired,
             currentPath: this.status.currentPath,
             startedAt: this.status.startedAt,
             finishedAt: this.status.finishedAt,
@@ -92,6 +95,7 @@ export class ScannerService {
         this.status.running = true;
         this.status.totalVisited = 0;
         this.status.filesFound = 0;
+    this.status.skippedUnexpired = 0;
         this.status.currentPath = '';
         this.status.startedAt = Date.now();
         this.status.finishedAt = 0;
@@ -105,7 +109,9 @@ export class ScannerService {
             totalVisited: 0,
             filesFound: 0,
             strmCreated: 0,
+            skippedUnexpired: 0,
             createdFiles: [],
+            skippedUnexpiredPaths: [],
             error: ''
         };
 
@@ -119,6 +125,7 @@ export class ScannerService {
             this.currentSession.totalVisited = this.status.totalVisited;
             this.currentSession.filesFound = this.status.filesFound;
             this.currentSession.strmCreated = this.status.strmCreated;
+            this.currentSession.skippedUnexpired = this.status.skippedUnexpired || 0;
             // persist session to history file
             this.appendHistory(this.currentSession);
             this.currentSession = null;
@@ -185,14 +192,37 @@ export class ScannerService {
 
                     const strmFilePath = join(basePath, folder, item.name.substring(0, item.name.lastIndexOf('.')) + ".strm");
 
-                    // obtain redirect/raw URL from ProxyService instead of composing manually
+                    // If .strm exists, read its content and try to parse expiry from the direct URL.
+                    // If the existing URL has an Expires timestamp and it's still in the future, skip regenerating the .strm.
                     try {
+                        if (existsSync(strmFilePath)) {
+                            try {
+                                const existing = readFileSync(strmFilePath, { encoding: 'utf8' }).toString().trim();
+                                const expiresSec = this.parseExpiresFromUrl(existing);
+                                const nowSec = Math.floor(Date.now() / 1000);
+                                if (expiresSec && expiresSec > nowSec) {
+                                    Logger.debug(`Skipping regenerate for unexpired .strm: ${strmFilePath} (expires ${expiresSec} > now ${nowSec})`);
+                                    this.status.skippedUnexpired = (this.status.skippedUnexpired || 0) + 1;
+                                    if (this.currentSession) {
+                                        this.currentSession.skippedUnexpired = (this.currentSession.skippedUnexpired || 0) + 1;
+                                        this.currentSession.skippedUnexpiredPaths.push(strmFilePath);
+                                    }
+                                    // we've skipped regeneration; continue to next file
+                                    continue;
+                                }
+                            } catch (readErr) {
+                                // if reading/parsing fails, fall through and regenerate
+                                Logger.debug(`Could not parse existing .strm or read file, will regenerate: ${strmFilePath} -> ${readErr}`);
+                            }
+                        }
+
+                        // obtain redirect/raw URL from ProxyService instead of composing manually
                         const redirectUrl = await this.proxyService.getRedirectUrl(join(folder, item.name));
                         const strmFileContent = redirectUrl;
 
-                        // create strm file and write content
-                        Logger.debug(`Creating strm file: ${strmFilePath}`);
-                        writeFileSync(strmFilePath, strmFileContent);
+                        // create/overwrite strm file and write content
+                        Logger.debug(`Creating/overwriting strm file: ${strmFilePath}`);
+                        writeFileSync(strmFilePath, strmFileContent, { encoding: 'utf8' });
                         // increment created counter
                         this.status.strmCreated = (this.status.strmCreated || 0) + 1;
                         // record created file in current session if present
@@ -200,10 +230,44 @@ export class ScannerService {
                             this.currentSession.createdFiles.push(strmFilePath);
                         }
                     } catch (err) {
-                        Logger.error(`Failed to get redirect URL for ${join(folder, item.name)}: ${err}`);
+                        Logger.error(`Failed to get redirect URL or write .strm for ${join(folder, item.name)}: ${err}`);
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Try to extract an Expires-like parameter (unix seconds) from a URL string.
+     * Returns the numeric seconds since epoch or null if not found/parsable.
+     */
+    private parseExpiresFromUrl(urlStr: string): number | null {
+        if (!urlStr) return null;
+        try {
+            // sometimes the .strm may contain the URL only; trim whitespace
+            const trimmed = urlStr.trim();
+            // If content is not a URL, bail out
+            if (!/^https?:\/\//i.test(trimmed)) return null;
+            const u = new URL(trimmed);
+            const params = u.searchParams;
+            const candidates = ['Expires', 'expires', 'x-amz-expires', 'ExpiresIn'];
+            for (const k of candidates) {
+                const v = params.get(k);
+                if (v) {
+                    const n = parseInt(v, 10);
+                    if (!Number.isNaN(n) && n > 0) return n;
+                }
+            }
+            // Some providers use 'Expires' but with different casing or embeddeds; try to find 'Expires=' in raw string
+            const m = trimmed.match(/[?&]Expires=(\d{9,})/i);
+            if (m && m[1]) {
+                const n = parseInt(m[1], 10);
+                if (!Number.isNaN(n) && n > 0) return n;
+            }
+            return null;
+        } catch (err) {
+            Logger.debug('parseExpiresFromUrl error: ' + err);
+            return null;
         }
     }
 }

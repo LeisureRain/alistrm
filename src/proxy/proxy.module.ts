@@ -4,9 +4,10 @@ import { ProxyService } from './proxy.service';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { AlistModule } from '../alist/alist.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [ConfigModule, HttpModule, AlistModule],
+  imports: [ConfigModule, HttpModule, AlistModule, AuthModule],
   controllers: [ProxyController],
   providers: [ProxyService],
   exports: [ProxyService]

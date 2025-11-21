@@ -76,6 +76,45 @@
     <div id="app">
       <header>STRM Server - Vue UI</header>
 
+      <div class="card" id="auth-card">
+        <div class="card-head">
+          <h3>用户</h3>
+          <div class="actions">
+            <button class="btn" v-if="!auth.authenticated" @click="showLogin = true">登录</button>
+            <button class="btn" v-else @click="logout">登出</button>
+          </div>
+        </div>
+        <p class="muted">管理访问控制</p>
+        <div>
+          <div v-if="!auth.authenticated">
+            <div v-if="showLogin">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input placeholder="用户名" v-model="authForm.username" />
+                <input placeholder="密码" v-model="authForm.password" type="password" />
+                <button class="btn primary" @click="login">登录</button>
+                <button class="btn" @click="showLogin=false">取消</button>
+              </div>
+              <div v-if="authError" style="color:#b00;margin-top:8px">{{ authError }}</div>
+            </div>
+            <div v-else class="muted">请登录以访问受保护的 API</div>
+          </div>
+          <div v-else>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>已登录为 <strong>{{ auth.username }}</strong></div>
+              <div><button class="btn" @click="showSettings = !showSettings">设置</button></div>
+            </div>
+            <div v-if="showSettings" style="margin-top:8px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input placeholder="当前密码" v-model="pwdForm.oldPassword" type="password" />
+                <input placeholder="新密码" v-model="pwdForm.newPassword" type="password" />
+                <button class="btn primary" @click="changePassword">修改密码</button>
+              </div>
+              <div v-if="pwdMsg" style="margin-top:8px;color:#666">{{ pwdMsg }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-head">
           <h3>Alist 目录浏览</h3>
@@ -101,7 +140,7 @@
         <h3>扫描器</h3>
         <p class="muted">扫描全部，并生成 strm 文件</p>
         <div>
-          <button class="btn primary" @click="rescan" :disabled="scanning || scanStatus.running">Rescan</button>
+          <button class="btn primary" @click="rescan" :disabled="scanning || scanStatus.running">重新扫描</button>
         </div>
         <div style="margin-top:8px">
           <div v-if="scanStatus.running">
@@ -152,6 +191,21 @@
               <div v-if="latestSession.error" style="margin-top:8px;color:#b00">错误：{{ latestSession.error }}</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>服务日志</h3>
+          <div class="actions">
+            <button class="btn" @click="fetchLogs">查看日志</button>
+            <button class="btn" @click="downloadLogs">下载日志</button>
+          </div>
+        </div>
+        <p class="muted">显示最近日志（默认 200 行）</p>
+        <div>
+          <pre v-if="logsContent" style="max-height:280px;overflow:auto;white-space:pre-wrap">{{ logsContent }}</pre>
+          <div v-else class="empty">尚未加载日志</div>
         </div>
       </div>
     </div>
@@ -216,6 +270,13 @@
           const rootPath = ref('/');
           const nodes = reactive({});
           const error = ref('');
+          const auth = reactive({ authenticated: false, username: '' });
+          const authForm = reactive({ username: '', password: '' });
+          const authError = ref('');
+          const showLogin = ref(false);
+          const showSettings = ref(false);
+          const pwdForm = reactive({ oldPassword: '', newPassword: '' });
+          const pwdMsg = ref('');
           const scannerResult = ref('');
           const scanning = ref(false);
           const scanStatus = reactive({
@@ -229,6 +290,7 @@
 
           let statusTimer = null;
           const latestSession = ref(null);
+          const logsContent = ref('');
           
           function closeLatest() {
             latestSession.value = null;
@@ -251,6 +313,65 @@
               // (could be improved to toast)
             } catch (e) {
               alert('复制失败: ' + e);
+            }
+          }
+
+          async function checkAuth() {
+            try {
+              const res = await fetch('/auth/me');
+              if (!res.ok) return false;
+              const data = await res.json();
+              auth.authenticated = !!data.authenticated;
+              auth.username = data.username || '';
+              return auth.authenticated;
+            } catch (e) {
+              auth.authenticated = false;
+              auth.username = '';
+              return false;
+            }
+          }
+
+          async function login() {
+            authError.value = '';
+            try {
+              const res = await fetch('/auth/login', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: authForm.username, password: authForm.password })
+              });
+              if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `${res.status}`);
+              }
+              await checkAuth();
+              showLogin.value = false;
+              authForm.password = '';
+            } catch (e) {
+              authError.value = '登录失败: ' + (e.message || e);
+            }
+          }
+
+          async function logout() {
+            try {
+              await fetch('/auth/logout', { method: 'POST' });
+            } catch (e) {
+              // ignore
+            }
+            await checkAuth();
+          }
+
+          async function changePassword() {
+            pwdMsg.value = '';
+            try {
+              const res = await fetch('/auth/change-password', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPassword: pwdForm.oldPassword, newPassword: pwdForm.newPassword })
+              });
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              pwdMsg.value = '密码修改成功';
+              pwdForm.oldPassword = '';
+              pwdForm.newPassword = '';
+            } catch (e) {
+              pwdMsg.value = '修改失败: ' + (e.message || e);
             }
           }
 
@@ -340,6 +461,44 @@
             }
           }
 
+          async function fetchLogs() {
+            try {
+              const res = await fetch('/api/logs?lines=300');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              if (data.ok) {
+                logsContent.value = data.content;
+              } else {
+                logsContent.value = '读取日志失败: ' + (data.error || '未知错误');
+              }
+            } catch (e) {
+              logsContent.value = '请求失败: ' + e;
+            }
+          }
+
+          async function downloadLogs() {
+            try {
+              const res = await fetch('/api/logs/download');
+              if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+              const data = await res.json();
+              if (data.ok) {
+                const blob = new Blob([data.content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `alistrm-log-${Date.now()}.log`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              } else {
+                alert('下载失败: ' + (data.error || '未知错误'));
+              }
+            } catch (e) {
+              alert('请求失败: ' + e);
+            }
+          }
+
           async function downloadHistory() {
             try {
               const res = await fetch('/scanner/history');
@@ -368,12 +527,23 @@
             return `${m}m ${sec}s`;
           }
 
-          // load default root on mount
-          loadRoot();
-          // start polling status so UI reflects any running scan
-          startStatusPoll();
+          // require authentication to access this page: redirect to separate login page if not authenticated
+          (async () => {
+            const ok = await checkAuth();
+            if (!ok) {
+              // redirect to login page served under /ui
+              window.location.href = '/ui/login.html';
+              return;
+            }
+            // load default root on mount
+            await loadRoot();
+            // start polling status so UI reflects any running scan
+            startStatusPoll();
+          })();
 
-          return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath };
+          // expose logs content and auth helpers
+          return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath, logsContent, fetchLogs, downloadLogs,
+            auth, authForm, authError, showLogin, showSettings, pwdForm, pwdMsg, login, logout, changePassword, checkAuth };
         }
       }).mount('#app');
     </script>

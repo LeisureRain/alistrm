@@ -1,8 +1,10 @@
-import { Controller, Get, Put, Request } from '@nestjs/common';
+import { Controller, Get, Put, Request, UseGuards } from '@nestjs/common';
 import { ScannerService } from './scanner.service';
 import { Request as ExpressRequest } from 'express';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('scanner')
+@UseGuards(AuthGuard)
 export class ScannerController {
 
     constructor(private readonly scannerService: ScannerService) { }

@@ -31,6 +31,8 @@ WORKDIR /app
 
 COPY --chown=node:node package*.json ./
 
+# (no native build deps required)
+
 # 我们需要通过Nest CLI 来执行npm run build,这是个开发依赖，然后把安装后依赖全部复制到指定目录
 COPY --chown=node:node --from=development /app/node_modules ./node_modules
 
@@ -65,6 +67,13 @@ ENV PORT 5255
 ENV SCAN_BASE_PATH "/"
 ENV STRM_BASE_PATH "/media/strm"
 ENV ALISTRM_SERVER_URL_TO_EMBY http://127.0.0.1:5255
+ENV LOG_DIR /app/logs
+
+ENV ADMIN_USER admin
+ENV ADMIN_PASS admin
+
+# ensure log directory exists and owned by node user
+RUN mkdir -p /app/logs && chown -R node:node /app/logs
 
 # 启动服务
 CMD [ "node", "dist/main.js" ]

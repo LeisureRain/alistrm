@@ -7,6 +7,8 @@ import { ScannerModule } from './scanner/scanner.module';
 import { ConfigModule } from '@nestjs/config';
 import { AlistModule } from './alist/alist.module';
 import configFactory from './config/config.factory';
+import { LogsModule } from './logs/logs.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   controllers: [AppController],
@@ -14,6 +16,6 @@ import configFactory from './config/config.factory';
   imports: [ProxyModule, ScannerModule, ConfigModule.forRoot({
     load: [configFactory],
     isGlobal: true,
-  }), AlistModule],
+  }), AlistModule, LogsModule, AuthModule],
 })
 export class AppModule { }
