@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  alistrm:
+    image: alistrm:latest
+    container_name: alistrm
+    ports:
+      - "5255:5255"
+    environment:
+      - PUID=1000
+      - PGID=100
+      - ADMIN_USER=admin
+      - ADMIN_PASS=admin
+      - ALIST_SERVER_URL=http://127.0.0.1:5244
+      - ALIST_USER_NAME=admin
+      - ALIST_PASSWORD=your_password_here
+      - STRM_BASE_PATH=/app/data/strm
+      - LOG_DIR=/app/logs
+      - PORT=5255
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    restart: unless-stopped

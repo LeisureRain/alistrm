@@ -87,4 +87,15 @@ RUN mkdir -p ${DATA_DIR} ${CONFIG_DIR} && chown -R node:node ${DATA_DIR} ${CONFI
 VOLUME ["/app/data", "/app/config"]
 
 # 启动服务
+# Defaults for runtime user mapping (can be overridden at docker run time)
+ENV PUID 1000
+ENV PGID 100
+
+# install su-exec helper to drop privileges and copy entrypoint
+RUN apk add --no-cache su-exec
+COPY --chown=root:root docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# entrypoint will create a user with PUID/PGID and exec the given CMD as that user
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD [ "node", "dist/main.js" ]
