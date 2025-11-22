@@ -14,8 +14,11 @@ async function bootstrap() {
   app.useLogger(fileLogger as any);
 
   // Serve static UI from /ui
+  // Serve static UI assets under /ui but do NOT auto-serve index.html for the directory
+  // so we can perform a server-side auth check and return either the login or index page
   app.useStaticAssets(join(__dirname, '..', 'public', 'ui'), {
     prefix: '/ui',
+    index: false,
   });
 
   await app.listen(process.env.PORT ?? 3000);

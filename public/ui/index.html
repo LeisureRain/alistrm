@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>STRM Server - Vue UI</title>
     <style>
+        html {
+            overflow: hidden;
+        }
       body {
         font-family: system-ui, 'Segoe UI', Roboto, 'Microsoft Yahei', sans-serif;
-        margin: 2rem;
+        margin: 0; /* remove default page margin to avoid extra vertical scroll */
         background: #fafafa;
         color: #222;
       }
@@ -101,7 +104,18 @@
       .small-btn{font-size:0.85rem;padding:4px 8px;border-radius:6px;border:1px solid #dcdcdc;background:#fff;cursor:pointer}
     </style>
     <div id="app">
-      <header class="app-header"><h1>STRM Server</h1></header>
+      <header class="app-header" style="display:flex;align-items:center;justify-content:space-between">
+        <h1>STRM Server</h1>
+        <div class="header-right">
+          <div v-if="auth.authenticated" style="display:flex;align-items:center;gap:10px">
+            <div class="small">已登录: <strong>{{ auth.username }}</strong></div>
+            <button class="btn" @click="logout">登出</button>
+          </div>
+          <div v-else>
+            <button class="btn" @click="activeView='settings'">登录</button>
+          </div>
+        </div>
+      </header>
       <div class="app-shell">
         <aside class="sidebar">
           <div class="logo">STRM 控制台</div>
@@ -111,10 +125,6 @@
             <button :class="{active: activeView==='scanner'}" @click="activeView='scanner'">扫描器</button>
             <button :class="{active: activeView==='logs'}" @click="activeView='logs'">服务日志</button>
             <button :class="{active: activeView==='settings'}" @click="activeView='settings'">设置</button>
-          </div>
-          <div style="margin-top:18px;">
-            <div class="small">当前用户: <strong>{{ auth.username || '-' }}</strong></div>
-            <div style="margin-top:8px"><button class="btn" @click="logout">登出</button></div>
           </div>
         </aside>
 
@@ -131,7 +141,7 @@
               </div>
               <div class="card" style="flex:1">
                 <div>日志</div>
-                <div style="margin-top:8px"><button class="btn" @click="fetchLogs">查看最近日志</button></div>
+                <div style="margin-top:8px"><button class="btn" @click="openLogs">查看最近日志</button></div>
               </div>
             </div>
           </section>
@@ -355,7 +365,10 @@
             } catch (e) {
               // ignore
             }
+            // After logout, go to the login page so the server can serve the correct page
+            // (also clears client-side auth state)
             await checkAuth();
+            window.location.href = '/ui/login.html';
           }
 
           async function changePassword() {
@@ -475,6 +488,12 @@
             }
           }
 
+          async function openLogs() {
+            // switch to logs view first (so the area is visible) then fetch
+            activeView.value = 'logs';
+            await fetchLogs();
+          }
+
           async function downloadLogs() {
             try {
               const res = await fetch('/api/logs/download');
@@ -541,7 +560,7 @@
           })();
 
           // expose logs content and auth helpers
-          return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath, logsContent, fetchLogs, downloadLogs,
+          return { rootPath, nodes, load, loadRoot, error, rescan, scannerResult, scanning, scanStatus, formatElapsed, latestSession, viewLatest, downloadHistory, closeLatest, copySessionJson, copyPath, logsContent, fetchLogs, downloadLogs, openLogs,
             auth, authForm, authError, showLogin, showSettings, pwdForm, pwdMsg, login, logout, changePassword, checkAuth, activeView };
         }
       }).mount('#app');
