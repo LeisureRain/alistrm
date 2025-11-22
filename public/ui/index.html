@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>STRM Server - Vue UI</title>
     <style>
+      /* hide vue-mustache flashes until app is mounted */
+      [v-cloak] { display: none !important; }
+      /* simple loading overlay shown while the SPA boots */
+      #loading-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(250,250,250,0.9));z-index:9999;font-size:1.05rem;color:#333}
+
         html {
             overflow: hidden;
         }
@@ -103,7 +108,9 @@
       .btn.primary{background:var(--accent);color:#fff;border-color:transparent}
       .small-btn{font-size:0.85rem;padding:4px 8px;border-radius:6px;border:1px solid #dcdcdc;background:#fff;cursor:pointer}
     </style>
-    <div id="app">
+  <!-- visible placeholder while Vue app initializes to avoid raw {{}} flashes -->
+  <div id="loading-overlay">加载中…</div>
+  <div id="app" v-cloak>
       <header class="app-header" style="display:flex;align-items:center;justify-content:space-between">
         <h1>STRM Server</h1>
         <div class="header-right">
@@ -564,6 +571,9 @@
             auth, authForm, authError, showLogin, showSettings, pwdForm, pwdMsg, login, logout, changePassword, checkAuth, activeView };
         }
       }).mount('#app');
+
+    // remove the loading overlay after Vue mounted
+    try { document.getElementById('loading-overlay')?.remove(); } catch(e) { /* ignore */ }
     </script>
   </body>
 </html>
